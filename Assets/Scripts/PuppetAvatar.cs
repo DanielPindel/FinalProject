@@ -93,11 +93,18 @@ public class PuppetAvatar : MonoBehaviour
                 Quaternion absOffset = absoluteOffsetMap[(JointId)j];
                 Transform finalJoint = PuppetAnimator.GetBoneTransform(MapKinectJoint((JointId)j));
                 finalJoint.rotation = absOffset * Quaternion.Inverse(absOffset) * KinectDevice.absoluteJointRotations[j] * absOffset;
-                if (j == 0)
+
+                // Keep the root in place to avoid the Avatar moving around
+                if ((JointId)j == JointId.Pelvis)
                 {
-                    // character root plus translation reading from the kinect, plus the offset from the script public variables
-                    finalJoint.position = CharacterRootTransform.position + new Vector3(RootPosition.transform.localPosition.x, RootPosition.transform.localPosition.y + OffsetY, RootPosition.transform.localPosition.z - OffsetZ);
+                    finalJoint.position = CharacterRootTransform.position;
                 }
+
+                //if (j == 0)
+                //{
+                //    // character root plus translation reading from the kinect, plus the offset from the script public variables
+                //    finalJoint.position = CharacterRootTransform.position + new Vector3(RootPosition.transform.localPosition.x, RootPosition.transform.localPosition.y + OffsetY, RootPosition.transform.localPosition.z - OffsetZ);
+                //}
             }
         }
     }
