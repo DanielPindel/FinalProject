@@ -8,12 +8,12 @@ public class PuppetAvatar : MonoBehaviour
 {
     public TrackerHandler KinectDevice;
     Dictionary<JointId, Quaternion> absoluteOffsetMap;
-    Animator PuppetAnimator;
+    public Animator PuppetAnimator;
     public GameObject RootPosition;
     public Transform CharacterRootTransform;
     public float OffsetY;
     public float OffsetZ;
-    private static HumanBodyBones MapKinectJoint(JointId joint)
+    public static HumanBodyBones MapKinectJoint(JointId joint)
     {
         // https://docs.microsoft.com/en-us/azure/Kinect-dk/body-joints
         switch (joint)
