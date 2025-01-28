@@ -26,11 +26,11 @@ public class PuppetAvatar : MonoBehaviour
             case JointId.HipLeft: return HumanBodyBones.LeftUpperLeg;
             case JointId.KneeLeft: return HumanBodyBones.LeftLowerLeg;
             case JointId.AnkleLeft: return HumanBodyBones.LeftFoot;
-            case JointId.FootLeft: return HumanBodyBones.LeftToes;
+            //case JointId.FootLeft: return HumanBodyBones.LeftToes;
             case JointId.HipRight: return HumanBodyBones.RightUpperLeg;
             case JointId.KneeRight: return HumanBodyBones.RightLowerLeg;
             case JointId.AnkleRight: return HumanBodyBones.RightFoot;
-            case JointId.FootRight: return HumanBodyBones.RightToes;
+            //case JointId.FootRight: return HumanBodyBones.RightToes;
             case JointId.ClavicleLeft: return HumanBodyBones.LeftShoulder;
             case JointId.ShoulderLeft: return HumanBodyBones.LeftUpperArm;
             case JointId.ElbowLeft: return HumanBodyBones.LeftLowerArm;
@@ -54,6 +54,7 @@ public class PuppetAvatar : MonoBehaviour
             if (hbb != HumanBodyBones.LastBone)
             {
                 Transform transform = PuppetAnimator.GetBoneTransform(hbb);
+                //Debug.Log($"JointId: {((JointId)i)}, Bone: {hbb}, Transform: {transform.name}");
                 Quaternion absOffset = GetSkeletonBone(PuppetAnimator, transform.name).rotation;
                 // find the absolute offset for the tpose
                 while (!ReferenceEquals(transform, _rootJointTransform))

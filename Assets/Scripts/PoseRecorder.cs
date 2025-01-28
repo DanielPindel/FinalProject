@@ -6,6 +6,9 @@ public class PoseRecorder : MonoBehaviour
     public Transform[] characterJoints;
     public PoseData poseData;
 
+    [SerializeField]
+    public int poseIndex = 0;
+
     public void RecordPose()
     {
         if (poseData == null)
@@ -28,7 +31,8 @@ public class PoseRecorder : MonoBehaviour
                 newPose.jointPositions.Add(new Pose.JointPosition
                 {
                     jointType = jointType,
-                    position = joint.position
+                    position = joint.position,
+                    rotation = joint.rotation
                 });
             }
             else
@@ -44,6 +48,44 @@ public class PoseRecorder : MonoBehaviour
         UnityEditor.EditorUtility.SetDirty(poseData);
 #endif
     }
+
+    public void RecreatePose()
+    {
+        if (poseData == null)
+        {
+            Debug.LogError("No PoseData assigned. Assign a PoseData ScriptableObject.");
+            return;
+        }
+
+        if (poseData.poses.Count == 0)
+        {
+            Debug.LogError("No poses recorded in PoseData.");
+            return;
+        }
+
+        if (poseIndex < 0 || poseIndex >= poseData.poses.Count)
+        {
+            Debug.LogError($"Invalid pose index: {poseIndex}. Valid range is 0 to {poseData.poses.Count - 1}.");
+            return;
+        }
+
+        Pose poseToRecreate = poseData.poses[poseIndex];
+
+        foreach (var jointPosition in poseToRecreate.jointPositions)
+        {
+            foreach (var joint in characterJoints)
+            {
+                if (joint.name == jointPosition.jointType.ToString())
+                {
+                    joint.position = jointPosition.position;
+                    joint.rotation = jointPosition.rotation;
+                    break;
+                }
+            }
+        }
+
+        Debug.Log($"Pose {poseIndex} recreated.");
+    }
 }
 
 [System.Serializable]
@@ -54,6 +96,7 @@ public class Pose
     {
         public JointType jointType;
         public Vector3 position;
+        public Quaternion rotation;
     }
 
     public List<JointPosition> jointPositions = new List<JointPosition>();
@@ -62,23 +105,23 @@ public class Pose
 public enum JointType
 {
     Hips,
-    LeftUpLeg,
-    LeftLeg,
+    LeftUpperLeg,
+    LeftLowerLeg,
     LeftFoot,
-    RightUpLeg,
-    RightLeg,
+    RightUpperLeg,
+    RightLowerLeg,
     RightFoot,
     Spine,
     Spine1,
     Spine2,
     LeftShoulder,
-    LeftArm,
-    LeftForeArm,
+    LeftUpperArm,
+    LeftLowerArm,
     LeftHand,
     Neck,
     Head,
     RightShoulder,
-    RightArm,
-    RightForeArm,
+    RightUpperArm,
+    RightLowerArm,
     RightHand
 }
