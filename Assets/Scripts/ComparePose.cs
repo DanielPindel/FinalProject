@@ -39,10 +39,22 @@ public class ComparePose : MonoBehaviour
     private Dictionary<Transform, Transform> includedJointPairs = new Dictionary<Transform, Transform>();
     private Dictionary<Transform, bool> jointMatchResults = new Dictionary<Transform, bool>();
 
+    private PoseRecorder poseRecorder;
+    private int currentPoseIndex = -1;
+
 
     void Start()
     {
         InitializeIncludedJoints();
+
+        poseRecorder = targetModel.GetComponent<PoseRecorder>();
+        if (poseRecorder == null)
+        {
+            Debug.LogError("PoseRecorder component not found on the targetModel!");
+            return;
+        }
+
+        LoadRandomPose();
     }
 
     void Update()
@@ -51,6 +63,11 @@ public class ComparePose : MonoBehaviour
         matchPercentage = matchScore * 100f; // Convert to percentage
         
         matchPercentageText.text = matchPercentage.ToString("F2") + "%";
+
+        if (matchPercentage >= 90f)
+        {
+            LoadRandomPose();
+        }
     }
 
     private void InitializeIncludedJoints()
@@ -84,6 +101,8 @@ public class ComparePose : MonoBehaviour
         float matchingScore = 0f;
         jointMatchResults.Clear();
 
+        Dictionary<Transform, bool> jointIncorrect = new Dictionary<Transform, bool>();
+
         foreach (var jointPair in includedJointPairs)
         {
             Transform targetJoint = jointPair.Key;
@@ -94,9 +113,34 @@ public class ComparePose : MonoBehaviour
             // Determine weight for the current joint
             float weight = GetJointWeight(jointName);
 
+            // Check if any ancestor of this joint is incorrect
+            bool isAncestorIncorrect = false;
+            Transform current = playerJoint;
+            while (current != null)
+            {
+                if (jointIncorrect.ContainsKey(current) && jointIncorrect[current])
+                {
+                    isAncestorIncorrect = true;
+                    break;
+                }
+                current = current.parent;
+            }
+
+            if (isAncestorIncorrect)
+            {
+                // If any ancestor is incorrect, mark this joint as incorrect
+                jointMatchResults[targetJoint] = false;
+                continue;
+            }
+
             // Compare rotations
             float rotationDifference = Quaternion.Angle(targetJoint.localRotation, playerJoint.localRotation);
             bool isRotationMatching = rotationDifference <= rotationThreshold;
+
+            if (!isRotationMatching)
+            {
+                MarkJointAndDescendantsIncorrect(playerJoint, jointIncorrect);
+            }
 
             jointMatchResults[targetJoint] = isRotationMatching;
 
@@ -111,6 +155,21 @@ public class ComparePose : MonoBehaviour
 
         // Return the weighted match percentage
         return totalWeight > 0f ? matchingScore / totalWeight : 0f;
+    }
+
+    // Helper method to mark a joint and all its descendants as incorrect
+    private void MarkJointAndDescendantsIncorrect(Transform joint, Dictionary<Transform, bool> jointIncorrect)
+    {
+        if (joint == null) return;
+
+        // Mark the current joint as incorrect
+        jointIncorrect[joint] = true;
+
+        // Recursively mark all children as incorrect
+        foreach (Transform child in joint)
+        {
+            MarkJointAndDescendantsIncorrect(child, jointIncorrect);
+        }
     }
 
     private float GetJointWeight(string jointName)
@@ -152,6 +211,32 @@ public class ComparePose : MonoBehaviour
         transforms.RemoveAt(0);
 
         return transforms;
+    }
+
+    private void LoadRandomPose()
+    {
+        if (poseRecorder == null || poseRecorder.poseData == null || poseRecorder.poseData.poses.Count == 0)
+        {
+            Debug.LogError("No poses available to load!");
+            return;
+        }
+
+        // Select a random pose index different from the current one
+        int newPoseIndex;
+
+        do
+        {
+            newPoseIndex = Random.Range(0, poseRecorder.poseData.poses.Count);
+        } 
+        while (newPoseIndex == currentPoseIndex);
+
+        currentPoseIndex = newPoseIndex;
+
+        // Apply the selected pose to the targetModel
+        poseRecorder.poseIndex = currentPoseIndex;
+        poseRecorder.RecreatePose();
+
+        Debug.Log($"Loaded pose {currentPoseIndex}");
     }
 
     void OnDrawGizmos()
