@@ -13,6 +13,7 @@ public class ComparePose : MonoBehaviour
 
     public float matchScore; // Overall match score (0-1)
     public float matchPercentage; // Percentage accuracy
+    public float targetMatchPercentage = 90f; // Required percentage accuracy
 
     public TextMeshProUGUI matchPercentageText;
 
@@ -29,7 +30,11 @@ public class ComparePose : MonoBehaviour
         { "RightUpLeg", 1.5f },
         { "RightLeg", 2.0f },
         { "LeftUpLeg", 1.5f },
-        { "LeftLeg", 2.0f }
+        { "LeftLeg", 2.0f },
+        { "RightHand", 0.25f },
+        { "LeftHand", 0.25f },
+        { "RightFoot", 0.25f },
+        { "LeftFoot", 0.25f }
     };
 
     public List<string> includedJoints;
@@ -64,7 +69,7 @@ public class ComparePose : MonoBehaviour
         
         matchPercentageText.text = matchPercentage.ToString("F2") + "%";
 
-        if (matchPercentage >= 90f)
+        if (matchPercentage >= targetMatchPercentage)
         {
             LoadRandomPose();
         }
