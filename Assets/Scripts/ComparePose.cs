@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
 using TMPro;
+using System.Collections;
 
 public class ComparePose : MonoBehaviour
 {
@@ -16,6 +17,26 @@ public class ComparePose : MonoBehaviour
     public float targetMatchPercentage = 90f; // Required percentage accuracy
 
     public TextMeshProUGUI matchPercentageText;
+    public TextMeshProUGUI scoreText;
+
+    public int bpm = 60;
+    public int gameLength = 10;
+    private int currentSequence = 0;
+    private int currentPoseIndex = 0;
+    private int totalPoses = 4;
+    private int score = 0;
+    private float beatInterval;
+
+    public List<string> includedJoints;
+    private List<int> poseSequence = new List<int>();
+    private List<Transform> targetJoints;
+    private List<Transform> playerJoints;
+
+    private Dictionary<Transform, Transform> includedJointPairs = new Dictionary<Transform, Transform>();
+    private Dictionary<Transform, bool> jointMatchResults = new Dictionary<Transform, bool>();
+
+    private PoseRecorder poseRecorder;
+    private PoseData poseData;
 
     // Weights for different joints
     private Dictionary<string, float> jointWeights = new Dictionary<string, float>
@@ -23,7 +44,7 @@ public class ComparePose : MonoBehaviour
         { "Hips", 1.0f },
         { "LeftShoulder", 1.5f },
         { "LeftArm", 2.0f },
-        { "LeftForeArm", 2.0f },        
+        { "LeftForeArm", 2.0f },
         { "RightShoulder", 1.5f },
         { "RightArm", 2.0f },
         { "RightForeArm", 2.0f },
@@ -37,42 +58,88 @@ public class ComparePose : MonoBehaviour
         { "LeftFoot", 0.25f }
     };
 
-    public List<string> includedJoints;
-    private List<Transform> targetJoints;
-    private List<Transform> playerJoints;
-
-    private Dictionary<Transform, Transform> includedJointPairs = new Dictionary<Transform, Transform>();
-    private Dictionary<Transform, bool> jointMatchResults = new Dictionary<Transform, bool>();
-
-    private PoseRecorder poseRecorder;
-    private int currentPoseIndex = -1;
-
-
     void Start()
     {
         InitializeIncludedJoints();
 
+        beatInterval = 60f / bpm;
+
         poseRecorder = targetModel.GetComponent<PoseRecorder>();
         if (poseRecorder == null)
         {
-            Debug.LogError("PoseRecorder component not found on the targetModel!");
+            Debug.LogError("PoseRecorder not found");
             return;
         }
 
-        LoadRandomPose();
+        poseData = poseRecorder.poseData;
+        if (poseData == null)
+        {
+            Debug.LogError("PoseData not found");
+        }
+
+        StartCoroutine(GameLoop());
     }
 
     void Update()
     {
-        matchScore = CompareRotations();
-        matchPercentage = matchScore * 100f; // Convert to percentage
-        
-        matchPercentageText.text = matchPercentage.ToString("F2") + "%";
+        matchPercentageText.text = (matchPercentage * 100f).ToString("F2") + "%";
+        scoreText.text = score.ToString();
+    }
 
-        if (matchPercentage >= targetMatchPercentage)
+    private IEnumerator GameLoop()
+    {
+        while(currentSequence < gameLength)
         {
-            LoadRandomPose();
+            GenerateRandomPoseIndexes();
+
+            yield return StartCoroutine(PlayPoseSequence());
+
+            yield return StartCoroutine(PlayerSequence());
+
+            currentSequence++;
         }
+
+        Debug.Log("Game Over");
+    }
+
+    private void GenerateRandomPoseIndexes()
+    {
+        poseSequence.Clear();
+
+        for (int i = 0; i < totalPoses; i++)
+        {
+            int randomIndex = Random.Range(0, poseData.poses.Count);
+            poseSequence.Add(randomIndex);
+        }
+    }
+
+    private IEnumerator PlayPoseSequence()
+    {
+        for(int i = 0; i < totalPoses; i++)
+        {
+            poseRecorder.poseIndex = poseSequence[i];
+            poseRecorder.RecreatePose();
+
+            yield return new WaitForSeconds(beatInterval);
+        }
+    }
+
+    private IEnumerator PlayerSequence()
+    {
+        for (int i = 0; i < totalPoses; i++)
+        {
+            yield return new WaitForSeconds(beatInterval);
+            EvaluatePlayerPose(poseSequence[i]);
+        }
+    }
+
+    private void EvaluatePlayerPose(int poseIndex)
+    {
+        Pose targetPose = poseData.poses[poseIndex];
+
+        matchPercentage = CompareRotations(targetPose);
+
+        score += Mathf.RoundToInt(100 * matchPercentage);
     }
 
     private void InitializeIncludedJoints()
@@ -100,10 +167,11 @@ public class ComparePose : MonoBehaviour
         }
     }
 
-    private float CompareRotations()
+    private float CompareRotations(Pose targetPose)
     {
         float totalWeight = 0f;
         float matchingScore = 0f;
+
         jointMatchResults.Clear();
 
         Dictionary<Transform, bool> jointIncorrect = new Dictionary<Transform, bool>();
@@ -138,12 +206,22 @@ public class ComparePose : MonoBehaviour
                 continue;
             }
 
+            Pose.JointPosition targetJointPosition = targetPose.jointPositions.Find(jp => jp.jointType.ToString() == jointName);
+            if (targetJointPosition.Equals(default(Pose.JointPosition)))
+            {
+                Debug.LogWarning($"Joint {jointName} not found");
+                continue;
+            }
+
+            Debug.Log($"Comparing {jointName}: Target Rotation = {targetJointPosition.rotation}, Player Rotation = {playerJoint.localRotation}");
+
             // Compare rotations
-            float rotationDifference = Quaternion.Angle(targetJoint.localRotation, playerJoint.localRotation);
+            float rotationDifference = Quaternion.Angle(targetJointPosition.rotation, playerJoint.localRotation);
             bool isRotationMatching = rotationDifference <= rotationThreshold;
 
             if (!isRotationMatching)
             {
+                Debug.Log($"{jointName} marked as incorrect. Rotation difference: {rotationDifference}");
                 MarkJointAndDescendantsIncorrect(playerJoint, jointIncorrect);
             }
 

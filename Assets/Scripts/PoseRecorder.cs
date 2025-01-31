@@ -31,8 +31,8 @@ public class PoseRecorder : MonoBehaviour
                 newPose.jointPositions.Add(new Pose.JointPosition
                 {
                     jointType = jointType,
-                    position = joint.position,
-                    rotation = joint.rotation
+                    position = joint.localPosition,
+                    rotation = joint.localRotation
                 });
             }
             else
@@ -77,8 +77,8 @@ public class PoseRecorder : MonoBehaviour
             {
                 if (joint.name == jointPosition.jointType.ToString())
                 {
-                    joint.position = jointPosition.position;
-                    joint.rotation = jointPosition.rotation;
+                    joint.localPosition = jointPosition.position;
+                    joint.localRotation = jointPosition.rotation;
                     break;
                 }
             }
