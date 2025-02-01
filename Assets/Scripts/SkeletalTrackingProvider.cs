@@ -35,7 +35,7 @@ public class SkeletalTrackingProvider : BackgroundDataProvider
                 {
                     CameraFPS = FPS.FPS30,
                     ColorResolution = ColorResolution.Off,
-                    DepthMode = DepthMode.NFOV_Unbinned,
+                    DepthMode = DepthMode.NFOV_2x2Binned,
                     WiredSyncMode = WiredSyncMode.Standalone,
                 });
 
@@ -43,7 +43,7 @@ public class SkeletalTrackingProvider : BackgroundDataProvider
 
                 var deviceCalibration = device.GetCalibration();
 
-                using (Tracker tracker = Tracker.Create(deviceCalibration, new TrackerConfiguration() { ProcessingMode = TrackerProcessingMode.Cuda, SensorOrientation = SensorOrientation.Default }))
+                using (Tracker tracker = Tracker.Create(deviceCalibration, new TrackerConfiguration() { ProcessingMode = TrackerProcessingMode.Gpu, SensorOrientation = SensorOrientation.Default }))
                 {
                     UnityEngine.Debug.Log("Body tracker created.");
                     while (!token.IsCancellationRequested)

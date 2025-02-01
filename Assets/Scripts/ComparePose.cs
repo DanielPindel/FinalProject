@@ -21,6 +21,7 @@ public class ComparePose : MonoBehaviour
 
     public int bpm = 60;
     public int gameLength = 10;
+    public int volume = 100;
     private int currentSequence = 0;
     private int currentPoseIndex = 0;
     private int totalPoses = 4;
@@ -37,6 +38,10 @@ public class ComparePose : MonoBehaviour
 
     private PoseRecorder poseRecorder;
     private PoseData poseData;
+
+    public AudioSource soundEffectSource;
+    public AudioClip beatSound;
+    public AudioClip muffledBeatSound;
 
     // Weights for different joints
     private Dictionary<string, float> jointWeights = new Dictionary<string, float>
@@ -61,6 +66,8 @@ public class ComparePose : MonoBehaviour
     void Start()
     {
         InitializeIncludedJoints();
+
+        soundEffectSource.volume = volume / 100f;
 
         beatInterval = 60f / bpm;
 
@@ -94,7 +101,17 @@ public class ComparePose : MonoBehaviour
 
             yield return StartCoroutine(PlayPoseSequence());
 
+            PlaySound(muffledBeatSound);
+
             yield return StartCoroutine(PlayerSequence());
+
+            for(int i = 0; i < 3; i++)
+            {
+                yield return new WaitForSeconds(beatInterval);
+                PlaySound(muffledBeatSound);
+            }
+
+            yield return new WaitForSeconds(beatInterval);
 
             currentSequence++;
         }
@@ -106,10 +123,19 @@ public class ComparePose : MonoBehaviour
     {
         poseSequence.Clear();
 
+        int previousIndex = -1;
+
         for (int i = 0; i < totalPoses; i++)
         {
-            int randomIndex = Random.Range(0, poseData.poses.Count);
+            int randomIndex;
+            do
+            {
+                randomIndex = Random.Range(0, poseData.poses.Count);
+            } 
+            while (randomIndex == previousIndex);
+
             poseSequence.Add(randomIndex);
+            previousIndex = randomIndex;
         }
     }
 
@@ -120,6 +146,8 @@ public class ComparePose : MonoBehaviour
             poseRecorder.poseIndex = poseSequence[i];
             poseRecorder.RecreatePose();
 
+            PlaySound(beatSound);
+
             yield return new WaitForSeconds(beatInterval);
         }
     }
@@ -129,6 +157,7 @@ public class ComparePose : MonoBehaviour
         for (int i = 0; i < totalPoses; i++)
         {
             yield return new WaitForSeconds(beatInterval);
+            PlaySound(beatSound);
             EvaluatePlayerPose(poseSequence[i]);
         }
     }
@@ -334,5 +363,10 @@ public class ComparePose : MonoBehaviour
             Gizmos.color = isMatching ? Color.green : Color.red;
             Gizmos.DrawSphere(joint.position, 0.01f);
         }
+    }
+
+    private void PlaySound(AudioClip clip)
+    {
+        soundEffectSource.PlayOneShot(clip);
     }
 }
