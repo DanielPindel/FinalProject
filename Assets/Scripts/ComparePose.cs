@@ -5,9 +5,12 @@ using UnityEngine.UI;
 using UnityEngine.Rendering;
 using TMPro;
 using System.Collections;
+using System;
+using UnityEditor.VersionControl;
 
 public class ComparePose : MonoBehaviour
 {
+    public HeartRateReceiver heartRateReceiver;
     public GameObject targetModel; // The model showing recorded poses
     public GameObject playerModel; // The model controlled by the player
     public float rotationThreshold = 15f; // Allowable rotational difference (in degrees)
@@ -19,14 +22,17 @@ public class ComparePose : MonoBehaviour
     public TextMeshProUGUI matchPercentageText;
     public TextMeshProUGUI scoreText;
 
-    public int bpm = 60;
+    public int baseBPM = 60;
+    private int currentBPM;
+    private float heartRate;
+    private int hrSeqCounter = 0;
     public int gameLength = 10;
     public int volume = 100;
     private int currentSequence = 0;
     private int currentPoseIndex = 0;
     private int totalPoses = 4;
     private int score = 0;
-    private float beatInterval;
+    private float beatInterval = 1f;
 
     public List<string> includedJoints;
     private List<int> poseSequence = new List<int>();
@@ -42,6 +48,16 @@ public class ComparePose : MonoBehaviour
     public AudioSource soundEffectSource;
     public AudioClip beatSound;
     public AudioClip muffledBeatSound;
+
+    public Image popUpMessage;
+    public Sprite getReadySprite;
+    public Sprite yourTurnSprite;
+    public Sprite finishSprite;
+    public Sprite threeSprite;
+    public Sprite twoSprite;
+    public Sprite oneSprite;
+    public Sprite speedUpSprite;
+    public Sprite slowDownSprite;
 
     // Weights for different joints
     private Dictionary<string, float> jointWeights = new Dictionary<string, float>
@@ -63,13 +79,20 @@ public class ComparePose : MonoBehaviour
         { "LeftFoot", 0.25f }
     };
 
+    private void Awake()
+    {
+        heartRateReceiver = GetComponent<HeartRateReceiver>();
+        popUpMessage.gameObject.SetActive(false);
+    }
+
     void Start()
     {
         InitializeIncludedJoints();
 
         soundEffectSource.volume = volume / 100f;
 
-        beatInterval = 60f / bpm;
+        currentBPM = baseBPM;
+        beatInterval = 60f / currentBPM;
 
         poseRecorder = targetModel.GetComponent<PoseRecorder>();
         if (poseRecorder == null)
@@ -84,13 +107,58 @@ public class ComparePose : MonoBehaviour
             Debug.LogError("PoseData not found");
         }
 
-        StartCoroutine(GameLoop());
+        StartCoroutine(Countdown());
+        //StartCoroutine(GameLoop());
     }
 
     void Update()
     {
         matchPercentageText.text = (matchPercentage * 100f).ToString("F2") + "%";
         scoreText.text = score.ToString();
+    }
+
+    private IEnumerator Countdown()
+    {
+        yield return ShowPopUpMessage(getReadySprite, 2);
+
+        yield return ShowPopUpMessage(threeSprite, 1);
+
+        yield return ShowPopUpMessage(twoSprite, 1);
+
+        yield return ShowPopUpMessage(oneSprite, 1);
+
+        StartCoroutine(GameLoop());
+    }
+
+    private IEnumerator ShowPopUpMessage(Sprite sprite, int time)
+    {
+        popUpMessage.sprite = sprite;
+
+        if (sprite != null)
+        {
+            RectTransform rt = popUpMessage.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                rt.sizeDelta = new Vector2(sprite.texture.width, sprite.texture.height);
+            }
+        }
+
+        popUpMessage.gameObject.SetActive(true);
+
+        StartCoroutine(HidePopUp(time * beatInterval));
+
+        for (int i = 0; i < time; i++)
+        {
+            PlaySound(muffledBeatSound);
+            yield return new WaitForSeconds(beatInterval);
+        }
+    }
+
+    private IEnumerator HidePopUp(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        popUpMessage.gameObject.SetActive(false);
     }
 
     private IEnumerator GameLoop()
@@ -101,7 +169,7 @@ public class ComparePose : MonoBehaviour
 
             yield return StartCoroutine(PlayPoseSequence());
 
-            PlaySound(muffledBeatSound);
+            yield return ShowPopUpMessage(yourTurnSprite, 4);
 
             yield return StartCoroutine(PlayerSequence());
 
@@ -114,9 +182,44 @@ public class ComparePose : MonoBehaviour
             yield return new WaitForSeconds(beatInterval);
 
             currentSequence++;
+            hrSeqCounter++;
+
+            if (hrSeqCounter >= 1)
+            {
+                float previousBPM = currentBPM;
+                AdjustTempo();
+
+                if (currentBPM > previousBPM)
+                {
+                    yield return ShowPopUpMessage(speedUpSprite, 4);
+                }
+                else if (currentBPM < previousBPM)
+                {
+                    yield return ShowPopUpMessage(slowDownSprite, 4);
+                }
+
+                hrSeqCounter = 0;
+            }
         }
 
         Debug.Log("Game Over");
+    }
+
+    private void AdjustTempo()
+    {
+        float tempoScalingFactor = 1.0f;
+
+        heartRate = heartRateReceiver.GetHeartRate();
+
+        if (heartRate > 0)
+        {
+            tempoScalingFactor = Mathf.Clamp(80f / heartRate, 0.5f, 2.0f);
+        }
+
+        currentBPM = Convert.ToInt32(baseBPM * tempoScalingFactor);
+        beatInterval = 60f / currentBPM;
+
+        Debug.Log($"Adjusted tempo: {currentBPM} BPM, Beat Interval: {beatInterval} seconds");
     }
 
     private void GenerateRandomPoseIndexes()
@@ -130,7 +233,7 @@ public class ComparePose : MonoBehaviour
             int randomIndex;
             do
             {
-                randomIndex = Random.Range(0, poseData.poses.Count);
+                randomIndex = UnityEngine.Random.Range(0, poseData.poses.Count);
             } 
             while (randomIndex == previousIndex);
 
@@ -156,10 +259,18 @@ public class ComparePose : MonoBehaviour
     {
         for (int i = 0; i < totalPoses; i++)
         {
-            yield return new WaitForSeconds(beatInterval);
             PlaySound(beatSound);
-            EvaluatePlayerPose(poseSequence[i]);
+            StartCoroutine(DelayedPoseEvaluation(poseSequence[i], 0.5f));
+
+            yield return new WaitForSeconds(beatInterval);
         }
+        PlaySound(muffledBeatSound);
+    }
+
+    private IEnumerator DelayedPoseEvaluation(int poseIndex, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        EvaluatePlayerPose(poseIndex);
     }
 
     private void EvaluatePlayerPose(int poseIndex)
@@ -242,15 +353,12 @@ public class ComparePose : MonoBehaviour
                 continue;
             }
 
-            Debug.Log($"Comparing {jointName}: Target Rotation = {targetJointPosition.rotation}, Player Rotation = {playerJoint.localRotation}");
-
             // Compare rotations
             float rotationDifference = Quaternion.Angle(targetJointPosition.rotation, playerJoint.localRotation);
             bool isRotationMatching = rotationDifference <= rotationThreshold;
 
             if (!isRotationMatching)
             {
-                Debug.Log($"{jointName} marked as incorrect. Rotation difference: {rotationDifference}");
                 MarkJointAndDescendantsIncorrect(playerJoint, jointIncorrect);
             }
 
@@ -338,7 +446,7 @@ public class ComparePose : MonoBehaviour
 
         do
         {
-            newPoseIndex = Random.Range(0, poseRecorder.poseData.poses.Count);
+            newPoseIndex = UnityEngine.Random.Range(0, poseRecorder.poseData.poses.Count);
         } 
         while (newPoseIndex == currentPoseIndex);
 

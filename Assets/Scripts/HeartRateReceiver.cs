@@ -13,6 +13,7 @@ public class HeartRateReceiver : MonoBehaviour
     DocumentReference heartRates;
     ListenerRegistration listenerRegistration;
     public TextMeshProUGUI heartRateText;
+    public int heartRate;
 
     void Start()
     {
@@ -38,7 +39,7 @@ public class HeartRateReceiver : MonoBehaviour
 
                 if (data.ContainsKey("heartRate") && data.ContainsKey("timestamp"))
                 {
-                    int heartRate = Convert.ToInt32(data["heartRate"]);
+                    heartRate = Convert.ToInt32(data["heartRate"]);
                     string timestamp = data["timestamp"].ToString();
 
                     //Debug.Log($"Heart Rate Updated: {heartRate} bpm");
@@ -56,5 +57,10 @@ public class HeartRateReceiver : MonoBehaviour
                 Debug.LogWarning("Document does not exist");
             }
         });
+    }
+
+    public int GetHeartRate()
+    {
+        return heartRate;
     }
 }
