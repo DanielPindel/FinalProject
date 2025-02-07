@@ -1,9 +1,7 @@
 using UnityEngine;
 using Firebase.Firestore;
-using Firebase.Extensions;
 using System.Collections.Generic;
 using System;
-using System.Collections;
 using TMPro;
 
 public class HeartRateReceiver : MonoBehaviour

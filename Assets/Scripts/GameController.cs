@@ -1,14 +1,12 @@
-using Microsoft.Azure.Kinect.BodyTracking;
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
-using UnityEngine.Rendering;
 using TMPro;
 using System.Collections;
 using System;
-using UnityEditor.VersionControl;
+using UnityEngine.SceneManagement;
 
-public class ComparePose : MonoBehaviour
+public class GameController : MonoBehaviour
 {
     public HeartRateReceiver heartRateReceiver;
     public GameObject targetModel; // The model showing recorded poses
@@ -26,8 +24,8 @@ public class ComparePose : MonoBehaviour
     private int currentBPM;
     private float heartRate;
     private int hrSeqCounter = 0;
-    public int gameLength = 10;
-    public int volume = 100;
+    public int gameLength;
+    public int volume;
     private int currentSequence = 0;
     private int currentPoseIndex = 0;
     private int totalPoses = 4;
@@ -59,24 +57,31 @@ public class ComparePose : MonoBehaviour
     public Sprite speedUpSprite;
     public Sprite slowDownSprite;
 
+    private bool isPaused = false;
+    public GameObject pauseMenuCanvas;
+    public Slider volumeSlider;
+    public TextMeshProUGUI volumeText;
+
     // Weights for different joints
     private Dictionary<string, float> jointWeights = new Dictionary<string, float>
     {
-        { "Hips", 1.0f },
-        { "LeftShoulder", 1.5f },
-        { "LeftArm", 2.0f },
-        { "LeftForeArm", 2.0f },
-        { "RightShoulder", 1.5f },
-        { "RightArm", 2.0f },
-        { "RightForeArm", 2.0f },
-        { "RightUpLeg", 1.5f },
+        { "Hips", 0.25f },
+        { "LeftShoulder", 2.0f },
+        { "LeftArm", 3.0f },
+        { "LeftForeArm", 3.0f },
+        { "RightShoulder", 2.0f },
+        { "RightArm", 3.0f },
+        { "RightForeArm", 3.0f },
+        { "RightUpLeg", 2.0f },
         { "RightLeg", 2.0f },
-        { "LeftUpLeg", 1.5f },
+        { "LeftUpLeg", 2.0f },
         { "LeftLeg", 2.0f },
         { "RightHand", 0.25f },
         { "LeftHand", 0.25f },
         { "RightFoot", 0.25f },
-        { "LeftFoot", 0.25f }
+        { "LeftFoot", 0.25f },
+        { "Spine", 0.25f },
+        { "Neck", 0.25f }
     };
 
     private void Awake()
@@ -87,6 +92,12 @@ public class ComparePose : MonoBehaviour
 
     void Start()
     {
+        volume = PlayerPrefs.GetInt("Volume", 20);
+        gameLength = PlayerPrefs.GetInt("GameDuration", 12);
+
+        volumeSlider.value = volume;
+        UpdateVolumeText();
+
         InitializeIncludedJoints();
 
         soundEffectSource.volume = volume / 100f;
@@ -108,13 +119,56 @@ public class ComparePose : MonoBehaviour
         }
 
         StartCoroutine(Countdown());
-        //StartCoroutine(GameLoop());
     }
 
     void Update()
     {
-        matchPercentageText.text = (matchPercentage * 100f).ToString("F2") + "%";
+        matchPercentageText.text = Convert.ToInt32(matchPercentage * 100f).ToString() + "%";
         scoreText.text = score.ToString();
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (isPaused)
+            {
+                ResumeGame();
+            }
+            else
+            {
+                PauseGame();
+            }
+        }
+    }
+
+    public void PauseGame()
+    {
+        isPaused = true;
+        Time.timeScale = 0f;
+        pauseMenuCanvas.SetActive(true);
+    }
+
+    public void ResumeGame()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;
+        pauseMenuCanvas.SetActive(false);
+    }
+
+    public void OnVolumeChanged()
+    {
+        PlayerPrefs.SetInt("Volume", (int)volumeSlider.value);
+        soundEffectSource.volume = volumeSlider.value / 100f;
+        UpdateVolumeText();
+    }
+
+    private void UpdateVolumeText()
+    {
+        volumeText.text = volumeSlider.value.ToString();
+    }
+
+    public void ExitToMainMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MainMenu");
     }
 
     private IEnumerator Countdown()
@@ -173,18 +227,10 @@ public class ComparePose : MonoBehaviour
 
             yield return StartCoroutine(PlayerSequence());
 
-            for(int i = 0; i < 3; i++)
-            {
-                yield return new WaitForSeconds(beatInterval);
-                PlaySound(muffledBeatSound);
-            }
-
-            yield return new WaitForSeconds(beatInterval);
-
             currentSequence++;
             hrSeqCounter++;
 
-            if (hrSeqCounter >= 1)
+            if (hrSeqCounter >= 3)
             {
                 float previousBPM = currentBPM;
                 AdjustTempo();
@@ -200,9 +246,18 @@ public class ComparePose : MonoBehaviour
 
                 hrSeqCounter = 0;
             }
+
+            for (int i = 0; i < 4; i++)
+            {
+                PlaySound(muffledBeatSound);
+                yield return new WaitForSeconds(beatInterval);
+            }
         }
 
         Debug.Log("Game Over");
+
+        yield return ShowPopUpMessage(finishSprite, 5);
+        SceneManager.LoadScene("MainMenu");
     }
 
     private void AdjustTempo()
@@ -260,7 +315,7 @@ public class ComparePose : MonoBehaviour
         for (int i = 0; i < totalPoses; i++)
         {
             PlaySound(beatSound);
-            StartCoroutine(DelayedPoseEvaluation(poseSequence[i], 0.5f));
+            StartCoroutine(DelayedPoseEvaluation(poseSequence[i], 0.75f));
 
             yield return new WaitForSeconds(beatInterval);
         }
@@ -325,6 +380,7 @@ public class ComparePose : MonoBehaviour
 
             // Determine weight for the current joint
             float weight = GetJointWeight(jointName);
+            totalWeight += weight;
 
             // Check if any ancestor of this joint is incorrect
             bool isAncestorIncorrect = false;
@@ -369,8 +425,6 @@ public class ComparePose : MonoBehaviour
             {
                 matchingScore += weight;
             }
-
-            totalWeight += weight;
         }
 
         // Return the weighted match percentage

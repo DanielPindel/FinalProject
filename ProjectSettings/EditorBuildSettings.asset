@@ -6,6 +6,10 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/PuppetMaster.unity
-    guid: f8f83b2fa35c63b4498c68984d7b4251
+    path: Assets/Scenes/MainMenu.unity
+    guid: 3b18d39517cd4f14aa3a936269f5b693
+  - enabled: 1
+    path: Assets/Scenes/GameScene.unity
+    guid: cf5bf4af57d5a6e409bcbe9394d953a0
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0
