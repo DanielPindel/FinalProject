@@ -19,7 +19,7 @@ public class PoseRecorder : MonoBehaviour
 
         if (characterJoints == null || characterJoints.Length == 0)
         {
-            Debug.LogError("No joints assigned to characterJoints!");
+            Debug.LogError("No joints assigned to characterJoints");
             return;
         }
 

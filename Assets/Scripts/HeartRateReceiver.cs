@@ -22,11 +22,6 @@ public class HeartRateReceiver : MonoBehaviour
         ListenToHeartRateUpdates();
     }
 
-    void Update()
-    {
-        
-    }
-
     void ListenToHeartRateUpdates()
     {
         listenerRegistration = heartRates.Listen(snapshot =>
@@ -39,9 +34,6 @@ public class HeartRateReceiver : MonoBehaviour
                 {
                     heartRate = Convert.ToInt32(data["heartRate"]);
                     string timestamp = data["timestamp"].ToString();
-
-                    //Debug.Log($"Heart Rate Updated: {heartRate} bpm");
-                    //Debug.Log($"Timestamp: {timestamp}");
 
                     heartRateText.text = $"{heartRate} bpm";
                 }

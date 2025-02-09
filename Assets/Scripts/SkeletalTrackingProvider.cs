@@ -33,7 +33,7 @@ public class SkeletalTrackingProvider : BackgroundDataProvider
             {
                 device.StartCameras(new DeviceConfiguration()
                 {
-                    CameraFPS = FPS.FPS30,
+                    CameraFPS = FPS.FPS15,
                     ColorResolution = ColorResolution.Off,
                     DepthMode = DepthMode.NFOV_2x2Binned,
                     WiredSyncMode = WiredSyncMode.Standalone,

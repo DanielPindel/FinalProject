@@ -76,8 +76,8 @@ public class GameController : MonoBehaviour
         { "RightLeg", 2.0f },
         { "LeftUpLeg", 2.0f },
         { "LeftLeg", 2.0f },
-        { "RightHand", 0.25f },
-        { "LeftHand", 0.25f },
+        { "RightHand", 0.0f },
+        { "LeftHand", 0.0f },
         { "RightFoot", 0.25f },
         { "LeftFoot", 0.25f },
         { "Spine", 0.25f },
@@ -230,7 +230,7 @@ public class GameController : MonoBehaviour
             currentSequence++;
             hrSeqCounter++;
 
-            if (hrSeqCounter >= 3)
+            if (hrSeqCounter >= 3 && currentSequence != gameLength)
             {
                 float previousBPM = currentBPM;
                 AdjustTempo();
@@ -315,7 +315,7 @@ public class GameController : MonoBehaviour
         for (int i = 0; i < totalPoses; i++)
         {
             PlaySound(beatSound);
-            StartCoroutine(DelayedPoseEvaluation(poseSequence[i], 0.75f));
+            StartCoroutine(DelayedPoseEvaluation(poseSequence[i], 0.5f));
 
             yield return new WaitForSeconds(beatInterval);
         }
@@ -378,11 +378,9 @@ public class GameController : MonoBehaviour
 
             string jointName = targetJoint.name;
 
-            // Determine weight for the current joint
             float weight = GetJointWeight(jointName);
             totalWeight += weight;
 
-            // Check if any ancestor of this joint is incorrect
             bool isAncestorIncorrect = false;
             Transform current = playerJoint;
             while (current != null)
@@ -397,7 +395,6 @@ public class GameController : MonoBehaviour
 
             if (isAncestorIncorrect)
             {
-                // If any ancestor is incorrect, mark this joint as incorrect
                 jointMatchResults[targetJoint] = false;
                 continue;
             }
@@ -409,7 +406,6 @@ public class GameController : MonoBehaviour
                 continue;
             }
 
-            // Compare rotations
             float rotationDifference = Quaternion.Angle(targetJointPosition.rotation, playerJoint.localRotation);
             bool isRotationMatching = rotationDifference <= rotationThreshold;
 
@@ -420,14 +416,12 @@ public class GameController : MonoBehaviour
 
             jointMatchResults[targetJoint] = isRotationMatching;
 
-            // Apply weight if the rotation matches
             if (isRotationMatching)
             {
                 matchingScore += weight;
             }
         }
 
-        // Return the weighted match percentage
         return totalWeight > 0f ? matchingScore / totalWeight : 0f;
     }
 

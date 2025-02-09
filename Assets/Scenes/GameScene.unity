@@ -869,7 +869,7 @@ MonoBehaviour:
   heartRateReceiver: {fileID: 0}
   targetModel: {fileID: 1914062048}
   playerModel: {fileID: 1212021898}
-  rotationThreshold: 30
+  rotationThreshold: 45
   matchScore: 0
   matchPercentage: 0
   targetMatchPercentage: 95
@@ -2634,7 +2634,7 @@ PrefabInstance:
     - target: {fileID: -3065149032385766036, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 115
+      value: 140
       objectReference: {fileID: 0}
     - target: {fileID: -3065149032385766036, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
@@ -2824,17 +2824,17 @@ PrefabInstance:
     - target: {fileID: -1326841304500906707, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 35
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -1326841304500906707, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: -60
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -1326841304500906707, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
+      value: -30
       objectReference: {fileID: 0}
     - target: {fileID: 660362091939095227, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
@@ -2954,17 +2954,17 @@ PrefabInstance:
     - target: {fileID: 2500109613609274552, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: -90
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2500109613609274552, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: -0.274
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2500109613609274552, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0.274
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 3742407835892290726, guid: d1e1928f8aa1617408c9079c482f01b3,
         type: 3}
